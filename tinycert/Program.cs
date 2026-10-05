@@ -61,7 +61,7 @@ class Program
         }
         else
         {
-            if (App.IssueCertificate(cnf, daysValid, outDirectory))
+            if (App.IssueCertificateFromConfig(cnf, daysValid, outDirectory))
             {
                 // CA initialized successfully
                 AppLogger.Information("CA initialized successfully.");
@@ -137,7 +137,6 @@ class Program
         var daysValidOption = new Option<int>("--days-valid")
         {
             Description = "The number of days the issued certificate will be valid for. If not specified, the default validity period will be 365 days.",
-            DefaultValueFactory = _ => 365
         };
         
         var outDirectoryOption = new Option<string>("--out-directory")

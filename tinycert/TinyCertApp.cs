@@ -90,7 +90,7 @@ public class TinyCertApp
         return true;
     }
 
-    public bool IssueCertificate(string? cnf, int? validityDays, string? outDirectory)
+    public bool IssueCertificateFromConfig(string? cnf, int? validityDays, string? outputDirectory)
     {
         var options = _optionsStore.Load();
         
@@ -100,10 +100,21 @@ public class TinyCertApp
             return false;
         }
         
+        _ui.PrintStepHeader("Predefined parameters for issuing certificate from CNF file");
+        _ui.PrintStepKeyValue("CNF file path", cnf);
+        
+        if(validityDays > 0) 
+            _ui.PrintStepKeyValue("Validity Days",validityDays.Value.ToString());
+        
+        if(outputDirectory != null) 
+            _ui.PrintStepKeyValue("Output Directory", outputDirectory);
+        
+        _ui.NewLine();
+        
         var caKey = ReadBinaryFile(options.CaKeyFilePath);
         var caCert = ReadBinaryFile(options.CaCertFilePath);
         
-        // load and parse cnf
+        _ui.PrintStepHeader("Loading and parsing CNF file");
         var cnfFileContent = File.ReadAllText(cnf);
         var cnfParser = new CnfFileParser();
         var cnfParseResult = cnfParser.ParseCnfFile(cnfFileContent);
@@ -114,9 +125,15 @@ public class TinyCertApp
             return false;
         }
         
-        var subject = CreateSubjectFromCnfFileData(cnfParseResult.CnfFileData!);
+        PrintCnfFileData(cnfParseResult.CnfFileData!);
         
-        validityDays ??= GetValidityPeriodDaysFromUserInput();
+        var subject = CreateSubjectFromCnfFileData(cnfParseResult.CnfFileData!);
+
+        if (validityDays <= 0)
+        {
+            _ui.PrintStepHeader("Fill in missing parameters for issuing certificate");
+            validityDays = GetValidityPeriodDaysFromUserInput();
+        }
         
         var certGenerator = new CertificatesGenerator();
         var certificateRequest = new CertificateRequest
@@ -127,11 +144,16 @@ public class TinyCertApp
             SubjectAlternativeIps = cnfParseResult.CnfFileData?.IpAlternateNames.ToList() ?? new List<string>()
         };
         
+        _ui.PrintStepHeader("Enter password for CA private key (leave empty if not set): ");
         var caKeyPassword = GetPasswordFromUserInput();
-        _ui.PrintLine("Enter password for private key (leave empty if not set): ");
-        var privateKeyPassword = GetNewPasswordFromUserInput();
+        _ui.NewLine();
         
-        _ui.PrintLine($"Issuing certificate for CN: {subject.CommonName}, Validity: {validityDays} days");
+        _ui.PrintStepHeader("Enter password for private key (leave empty if not set): ");
+        var privateKeyPassword = GetNewPasswordFromUserInput();
+        _ui.NewLine();
+        
+        _ui.PrintStepHeader("Issuing certificate");
+        _ui.PrintStepLine($"Issuing certificate for CN: {subject.CommonName}, Validity: {validityDays} days");
         var issueResult = certGenerator.GenerateServerCertificate(certificateRequest,  caKey, caCert,caKeyPassword, privateKeyPassword);
         
         if (!issueResult.IsSuccess)
@@ -140,14 +162,14 @@ public class TinyCertApp
             return false;
         }
         
-        var certFileName = $"{subject.CommonName}.crt";
-        var keyFileName = $"{subject.CommonName}.key";
-        var certFilePath = Path.Combine(outDirectory ?? string.Empty, certFileName);
-        var keyFilePath = Path.Combine(outDirectory ?? string.Empty, keyFileName);
+        var certFileName = $"{subject.CommonName}-crt.pem";
+        var keyFileName = $"{subject.CommonName}-key.pem";
+        var certFilePath = Path.Combine(outputDirectory ?? string.Empty, certFileName);
+        var keyFilePath = Path.Combine(outputDirectory ?? string.Empty, keyFileName);
         
         if (!SaveBinaryFile(certFilePath, issueResult.CertificatePem))
         {
-            Console.WriteLine("Failed to save issued certificate file.");
+            _ui.PrintError("Failed to save issued certificate file.");
             return false;
         }
         
@@ -157,7 +179,11 @@ public class TinyCertApp
             return false;
         }
         
-        _ui.PrintLine($"Successfully issued certificate and saved to {certFilePath} and {keyFilePath}");
+        _ui.NewLine();
+        
+        _ui.PrintSuccess($"Successfully issued certificate and saved: to {certFilePath} and {keyFilePath}");
+        _ui.PrintLine($"Certificate: {certFilePath}");
+        _ui.PrintLine($"Key: {keyFilePath}");
         return true;
     }
 
@@ -166,11 +192,22 @@ public class TinyCertApp
         var options = _optionsStore.Load();
         
         _ui.PrintStepHeader("Predefined parameters for issuing certificate");
-        if(!string.IsNullOrWhiteSpace(cn)) _ui.PrintStepKeyValue("Common Name (CN)", cn);
-        if(validityDays.HasValue) _ui.PrintStepKeyValue("Validity Days",validityDays.Value.ToString());
-        if(subjectAlternativeNames != null && subjectAlternativeNames.Length > 0) _ui.PrintStepKeyValue("Subject Alternative Names", string.Join(", ", subjectAlternativeNames));
-        if(subjectAlternativeIPs != null && subjectAlternativeIPs.Length > 0) _ui.PrintStepKeyValue("Subject Alternative IPs", string.Join(", ", subjectAlternativeIPs));
-        if(outputDirectory != null) _ui.PrintStepKeyValue("Output Directory", outputDirectory);
+        
+        if(!string.IsNullOrWhiteSpace(cn)) 
+            _ui.PrintStepKeyValue("Common Name (CN)", cn);
+        
+        if(validityDays > 0) 
+            _ui.PrintStepKeyValue("Validity Days",validityDays.Value.ToString());
+        
+        if(subjectAlternativeNames != null && subjectAlternativeNames.Length > 0) 
+            _ui.PrintStepKeyValue("Subject Alternative Names", string.Join(", ", subjectAlternativeNames));
+        
+        if(subjectAlternativeIPs != null && subjectAlternativeIPs.Length > 0) 
+            _ui.PrintStepKeyValue("Subject Alternative IPs", string.Join(", ", subjectAlternativeIPs));
+        
+        if(outputDirectory != null) 
+            _ui.PrintStepKeyValue("Output Directory", outputDirectory);
+        
         _ui.NewLine();
         
         
@@ -184,8 +221,13 @@ public class TinyCertApp
         var caCert = ReadBinaryFile(options.CaCertFilePath);
         
         _ui.PrintStepHeader("Fill in missing parameters for issuing certificate");
+        
         var subject = GetSubjectFromUserInput(cn);
-        validityDays ??= GetValidityPeriodDaysFromUserInput();
+        if (validityDays <= 0)
+        {
+            validityDays = GetValidityPeriodDaysFromUserInput();
+        }
+
         _ui.NewLine();
         
         var certGenerator = new CertificatesGenerator();
@@ -239,6 +281,24 @@ public class TinyCertApp
         _ui.PrintLine($"Key: {keyFilePath}");
         return true;
     }
+    
+    private void PrintCnfFileData(CnfFileData cnfFileData)
+    {
+        _ui.PrintStepKeyValue("Country Name", cnfFileData.CountryName);
+        _ui.PrintStepKeyValue("State or Province Name", cnfFileData.StateOrProvinceName);
+        _ui.PrintStepKeyValue("Locality Name", cnfFileData.LocalityName);
+        _ui.PrintStepKeyValue("Organization Name", cnfFileData.OrganizationName);
+        _ui.PrintStepKeyValue("Organizational Unit Name", cnfFileData.OrganizationalUnitName);
+        _ui.PrintStepKeyValue("Common Name", cnfFileData.CommonName);
+        
+        if (cnfFileData.DnsAlternateNames.Count > 0)
+            _ui.PrintStepKeyValue("DNS Alternate Names", string.Join(", ", cnfFileData.DnsAlternateNames));
+        
+        if (cnfFileData.IpAlternateNames.Count > 0)
+            _ui.PrintStepKeyValue("IP Alternate Names", string.Join(", ", cnfFileData.IpAlternateNames));
+        
+        _ui.NewLine();
+    }
 
     private Subject GetSubjectFromUserInput(string? ca)
     {
@@ -275,16 +335,23 @@ public class TinyCertApp
     
     private int GetValidityPeriodDaysFromUserInput()
     {
-        Console.Write("Number of days the certificate will be valid for [365]: ");
-        var input = Console.ReadLine();
-        
-        if (int.TryParse(input, out int daysValid))
+        while (true)
         {
-            return daysValid;
-        }
+            var validityPeriod = _ui.InlinePrompt("Number of days the certificate will be valid for [365]");
         
-        Console.WriteLine("Invalid input. Using default validity period of 365 days.");
-        return 365;
+            if (int.TryParse(validityPeriod, out var daysValid))
+            {
+                if(daysValid <= 0)
+                {
+                    _ui.PrintError("Validity period must be a positive integer. Please try again.");
+                    continue;
+                }
+                
+                return daysValid;
+            }
+            
+            _ui.PrintError("Validity period must be a positive integer. Please try again.");
+        }
     }
     
     private int GetValidityPeriodYearsFromUserInput()
