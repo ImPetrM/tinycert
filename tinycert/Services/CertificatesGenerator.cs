@@ -189,7 +189,7 @@ internal class CertificatesGenerator
         
         var pkcs8Generator = new Pkcs8Generator(
             privateKey,
-            Pkcs8Generator.PbeSha1_3DES
+            Pkcs8Generator.PbeWithShaAnd3KeyTripleDesCbc
         );
 
         pkcs8Generator.Password = password.ToCharArray();
