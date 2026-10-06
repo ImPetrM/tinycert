@@ -26,6 +26,7 @@ public class TinyCertApp
 
         if (!string.IsNullOrWhiteSpace(caCertFilePath) && !string.IsNullOrWhiteSpace(caKeyFilePath))
         {
+            _ui.PrintStepHeader("Updating CA certificate and key from provided file paths");
             if (!File.Exists(caCertFilePath))
             {
                 _ui.PrintError($"CA certificate file not found at {caCertFilePath}. Please provide a valid path.");
@@ -38,21 +39,24 @@ public class TinyCertApp
                 return false;
             }
             
-            _ui.PrintLine("Successfully loaded CA certificate and key from provided file paths.");
             options.CaCertFilePath = caCertFilePath;
             options.CaKeyFilePath = caKeyFilePath;
             
             _ui.PrintLine("Saving CA certificate and key file paths to options store...");
             _optionsStore.Save(options);
+            _ui.PrintSuccess("Successfully saved CA certificate and key file paths to options store.");
         }
         else
         {
+            _ui.PrintStepHeader("Creating new CA certificate and key");
             if(!forceRegenerate && (File.Exists(options.CaCertFilePath) || File.Exists(options.CaKeyFilePath)))
             {
                 _ui.PrintError("CA certificate or key file already exists. Use --force to overwrite.");
                 return false;
             }
+            _ui.NewLine();
             
+            _ui.PrintStepHeader("Fill in missing parameters for issuing certificate");
             _ui.PrintLine("No CA certificate or key file paths provided. Creating new.");
             var subject = GetSubjectFromUserInput(null);
             var validityYears = GetValidityPeriodYearsFromUserInput();
@@ -133,6 +137,7 @@ public class TinyCertApp
         {
             _ui.PrintStepHeader("Fill in missing parameters for issuing certificate");
             validityDays = GetValidityPeriodDaysFromUserInput();
+            _ui.NewLine();
         }
         
         var certGenerator = new CertificatesGenerator();
