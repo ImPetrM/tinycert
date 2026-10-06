@@ -114,6 +114,12 @@ public class TinyCertApp
         }
         
         _ui.PrintStepHeader("Predefined parameters for issuing certificate from CNF file");
+        if(!File.Exists(cnf))
+        {
+            _ui.PrintError($"CNF file not found at {cnf}. Please provide a valid path.");
+            return false;
+        }
+        
         _ui.PrintStepKeyValue("CNF file path", cnf);
         
         if(validityDays > 0) 
@@ -142,7 +148,7 @@ public class TinyCertApp
         
         var subject = CreateSubjectFromCnfFileData(cnfParseResult.CnfFileData!);
 
-        if (validityDays <= 0)
+        if (!validityDays.HasValue || validityDays <= 0)
         {
             _ui.PrintStepHeader("Fill in missing parameters for issuing certificate");
             validityDays = GetValidityPeriodDaysFromUserInput();
@@ -237,7 +243,7 @@ public class TinyCertApp
         _ui.PrintStepHeader("Fill in missing parameters for issuing certificate");
         
         var subject = GetSubjectFromUserInput(cn);
-        if (validityDays <= 0)
+        if (!validityDays.HasValue || validityDays <= 0)
         {
             validityDays = GetValidityPeriodDaysFromUserInput();
         }
