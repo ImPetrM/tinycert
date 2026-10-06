@@ -60,11 +60,14 @@ public class TinyCertApp
             _ui.PrintLine("No CA certificate or key file paths provided. Creating new.");
             var subject = GetSubjectFromUserInput(null);
             var validityYears = GetValidityPeriodYearsFromUserInput();
+            _ui.NewLine();
+            _ui.NewLine();
             
-            _ui.PrintLine("Password for encrypting the CA private key (leave empty for no password):");
+            _ui.PrintStepHeader("Enter password for CA private key (leave empty if not set)");
             var caKeyPassword = GetNewPasswordFromUserInput();
+            _ui.NewLine();
 
-            _ui.PrintLine("Generating CA certificate and private key...");
+            _ui.PrintStepHeader("Generating certificate authority (CA) certificate and private key");
             var certGenerator = new CertificatesGenerator();
             var caGeneratorResult = certGenerator.GenerateCertificateAuthorityCertificate(new CertificateRequest()
             {
@@ -89,6 +92,12 @@ public class TinyCertApp
                 _ui.PrintError("Failed to save CA certificate and key files.");
                 return false;
             }
+            
+            _ui.NewLine();
+            
+            _ui.PrintSuccess("Successfully generated CA certificate and private key");
+            _ui.PrintLine($"CA Certificate: {options.CaCertFilePath}");
+            _ui.PrintLine($"CA Key: {options.CaKeyFilePath}");
         }
 
         return true;
@@ -186,7 +195,7 @@ public class TinyCertApp
         
         _ui.NewLine();
         
-        _ui.PrintSuccess($"Successfully issued certificate and saved: to {certFilePath} and {keyFilePath}");
+        _ui.PrintSuccess("Successfully issued certificate and saved");
         _ui.PrintLine($"Certificate: {certFilePath}");
         _ui.PrintLine($"Key: {keyFilePath}");
         return true;
@@ -281,7 +290,7 @@ public class TinyCertApp
         
         _ui.NewLine();
         
-        _ui.PrintSuccess($"Successfully issued certificate and saved: to {certFilePath} and {keyFilePath}");
+        _ui.PrintSuccess("Successfully issued certificate and saved");
         _ui.PrintLine($"Certificate: {certFilePath}");
         _ui.PrintLine($"Key: {keyFilePath}");
         return true;
