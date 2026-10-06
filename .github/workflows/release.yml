@@ -1,0 +1,54 @@
+name: Main Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+env:
+    APP_NAME: tinycert
+    APP_PROJECT_PATH: ./tinycert/tinycert.csproj
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore
+
+      - name: Test
+        run: dotnet test -c Release --no-build
+
+      - name: Publish Linux x64
+        run: dotnet publish ${{ env.APP_PROJECT_PATH }} -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o ./publish/linux-x64
+
+      - name: Publish Windows x64
+        run: dotnet publish ${{ env.APP_PROJECT_PATH }} -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o ./publish/win-x64
+
+      - name: Pack Linux artifact
+        run: tar -czf ${{ env.APP_NAME }}-linux-x64.tar.gz -C ./publish/linux-x64 .
+
+      - name: Pack Windows artifact
+        run: zip -r ${{ env.APP_NAME }}-win-x64.zip ./publish/win-x64
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.APP_NAME }}-linux-x64.tar.gz
+            ${{ env.APP_NAME }}-win-x64.zip
