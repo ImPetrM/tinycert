@@ -64,8 +64,8 @@ internal class CertificatesGenerator
                 random);
         
             var caCert = certGenerator.Generate(signatureFactory);
-            var serviceCertPem = GetCertificatePem(caCert);
-            var encryptedPrivateKeyPem = GetEncryptedPrivateKeyPem(caKeyPair.Private, privateKeyPassword, random);
+            var serviceCertPem = CreateCertificatePem(caCert);
+            var encryptedPrivateKeyPem = CreateEncryptedPrivateKeyPem(caKeyPair.Private, privateKeyPassword, random);
         
             return CertificateGenerationResult.Success(serviceCertPem, encryptedPrivateKeyPem);
         }
@@ -134,8 +134,8 @@ internal class CertificatesGenerator
                 random);
                 
             var serviceCert = certGenerator.Generate(signatureFactory);
-            var serviceCertPem = GetCertificatePem(serviceCert);
-            var encryptedPrivateKeyPem = GetEncryptedPrivateKeyPem(serviceKeyPair.Private, privateKeyPassword, random);
+            var serviceCertPem = CreateCertificatePem(serviceCert);
+            var encryptedPrivateKeyPem = CreateEncryptedPrivateKeyPem(serviceKeyPair.Private, privateKeyPassword, random);
             
             return CertificateGenerationResult.Success(serviceCertPem, encryptedPrivateKeyPem);
         }
@@ -180,7 +180,7 @@ internal class CertificatesGenerator
         return DateTime.UtcNow.AddHours(-1);
     }
     
-    private byte[] GetEncryptedPrivateKeyPem(AsymmetricKeyParameter privateKey, string password, SecureRandom random)
+    private byte[] CreateEncryptedPrivateKeyPem(AsymmetricKeyParameter privateKey, string password, SecureRandom random)
     {
         var result = new List<byte>();
         var memoryStream = new MemoryStream();
@@ -209,7 +209,7 @@ internal class CertificatesGenerator
         return result.ToArray();
     }
 
-    private byte [] GetCertificatePem(X509Certificate certificate)
+    private byte [] CreateCertificatePem(X509Certificate certificate)
     {
         var result = new List<byte>();
         var memoryStream = new MemoryStream();
